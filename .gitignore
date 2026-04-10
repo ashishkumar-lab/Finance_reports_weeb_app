@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+
+# Environment files — NEVER commit these
+.env
+.env.local
+.env.production
+.env*.local
+
+# Deployment script — contains credentials
+deploy.sh
+
+# Logs
+*.log
+server.log
+server_debug.log
+
+# OS
+.DS_Store
+Thumbs.db
