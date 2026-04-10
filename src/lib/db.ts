@@ -10,7 +10,7 @@ const financePool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl: { rejectUnauthorized: true },
+  ssl: { rejectUnauthorized: false },
   connectTimeout: 30000,
 });
 
@@ -24,7 +24,7 @@ const driveuPool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl: { rejectUnauthorized: true },
+  ssl: { rejectUnauthorized: false },
   connectTimeout: 30000,
 });
 
