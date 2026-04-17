@@ -44,6 +44,23 @@ export async function driveuQuery<T = unknown>(
   return rows as T[];
 }
 
+// Long-running query with extended session timeouts (for report generation)
+export async function driveuQueryLong<T = unknown>(
+  sql: string,
+  params?: (string | number | boolean | null)[]
+): Promise<T[]> {
+  const conn = await driveuPool.getConnection();
+  try {
+    await conn.execute('SET SESSION net_read_timeout = 31536000');
+    await conn.execute('SET SESSION net_write_timeout = 31536000');
+    await conn.execute('SET SESSION wait_timeout = 31536000');
+    const [rows] = await conn.execute(sql, params);
+    return rows as T[];
+  } finally {
+    conn.release();
+  }
+}
+
 export interface DownloadLog {
   id: number;
   report_name: string;

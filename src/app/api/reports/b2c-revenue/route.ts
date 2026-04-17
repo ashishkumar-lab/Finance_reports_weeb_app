@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { driveuQuery, logDownload } from "@/lib/db";
+import { driveuQueryLong, logDownload, driveuPool } from "@/lib/db";
 import { hasReportPermission } from "@/lib/userDb";
 import { generateExcel } from "@/lib/excel";
 
@@ -273,10 +273,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const rows = await driveuQuery<Record<string, unknown>>(
-      B2C_REVENUE_QUERY,
-      [startDate, endDate]
-    );
+    const rows = await driveuQueryLong<Record<string, unknown>>(B2C_REVENUE_QUERY, [startDate, endDate]);
 
     if (rows.length > 1048575) {
       return NextResponse.json(

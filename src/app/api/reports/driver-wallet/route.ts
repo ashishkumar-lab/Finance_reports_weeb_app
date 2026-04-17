@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { driveuQuery, logDownload } from "@/lib/db";
+import { driveuQueryLong, logDownload } from "@/lib/db";
 import { hasReportPermission } from "@/lib/userDb";
 import { generateExcel } from "@/lib/excel";
 
@@ -231,7 +231,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const rows = await driveuQuery<Record<string, unknown>>(
+    const rows = await driveuQueryLong<Record<string, unknown>>(
       DRIVER_WALLET_QUERY,
       [startDate, endDate]
     );
