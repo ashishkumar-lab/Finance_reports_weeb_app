@@ -11,6 +11,7 @@ SELECT
     b.booking_id,
     CONCAT("'", b.booking_id) AS 'Formated booking_id',
     tariff_city.name AS 'City Name',
+    tariff_citysubzone.zone_name AS 'Zone Name',
     csbt.service_type,
     b.user_id,
     b.customer_mobile,
@@ -159,6 +160,9 @@ JOIN tariff_city
 JOIN app_bookingsummary
     ON app_bookingsummary.booking_id = b.id
 
+LEFT JOIN tariff_citysubzone
+    ON tariff_citysubzone.id = app_bookingsummary.zone_id
+
 JOIN tariff_cityservicebookingtype AS csbt
     ON app_bookingsummary.city_service_booking_id = csbt.id
 
@@ -208,6 +212,7 @@ const COLUMNS = [
   { header: "Booking ID",             key: "booking_id",               width: 22 },
   { header: "Formatted Booking ID",   key: "Formated booking_id",      width: 24 },
   { header: "City Name",              key: "City Name",                width: 18 },
+  { header: "Zone Name",              key: "Zone Name",                width: 20 },
   { header: "Service Type",           key: "service_type",             width: 18 },
   { header: "User ID",                key: "user_id",                  width: 14 },
   { header: "Customer Mobile",        key: "customer_mobile",          width: 18 },
