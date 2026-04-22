@@ -11,10 +11,12 @@ export interface DbUser {
 }
 
 export const ALL_REPORTS = [
-  { id: "b2c-revenue",      name: "B2C Revenue Report" },
-  { id: "b2b-revenue",      name: "B2B Revenue Report" },
-  { id: "driver-wallet",    name: "Driver Wallet Report" },
-  { id: "customer-wallet",  name: "Customer Wallet Report" },
+  { id: "b2c-revenue",            name: "B2C Revenue Report" },
+  { id: "b2b-revenue",            name: "B2B Revenue Report" },
+  { id: "driver-wallet",          name: "Driver Wallet Report" },
+  { id: "customer-wallet",        name: "Customer Wallet Report" },
+  { id: "car-rental-bookings",    name: "Car Rental Booking Request Report" },
+  { id: "car-rental-revenue",     name: "Car Rental Revenue Report" },
 ];
 
 async function ensureTables() {

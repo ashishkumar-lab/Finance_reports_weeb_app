@@ -140,4 +140,34 @@ export async function setAdminPasswordHash(hash: string): Promise<void> {
   );
 }
 
-export { financePool, driveuPool };
+// Car Rental DB pool
+const carRentalPool = mysql.createPool({
+  host: process.env.CAR_RENTAL_DB_HOST,
+  port: Number(process.env.CAR_RENTAL_DB_PORT) || 3306,
+  user: process.env.CAR_RENTAL_DB_USER,
+  password: process.env.CAR_RENTAL_DB_PASSWORD,
+  database: process.env.CAR_RENTAL_DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  ssl: { rejectUnauthorized: false },
+  connectTimeout: 30000,
+});
+
+export async function carRentalQueryLong<T = unknown>(
+  sql: string,
+  params?: (string | number | boolean | null)[]
+): Promise<T[]> {
+  const conn = await carRentalPool.getConnection();
+  try {
+    await conn.execute('SET SESSION net_read_timeout = 31536000');
+    await conn.execute('SET SESSION net_write_timeout = 31536000');
+    await conn.execute('SET SESSION wait_timeout = 31536000');
+    const [rows] = await conn.execute(sql, params);
+    return rows as T[];
+  } finally {
+    conn.release();
+  }
+}
+
+export { financePool, driveuPool, carRentalPool };

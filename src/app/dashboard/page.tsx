@@ -7,10 +7,12 @@ import Footer from "@/components/Footer";
 import { getUserPermissions, ALL_REPORTS } from "@/lib/userDb";
 
 const reports = [
-  { id: "b2c-revenue",     title: "B2C Revenue Report",     description: "Business-to-Consumer revenue breakdown including transaction totals, refunds, and net revenue by date range.", icon: "b2c",      color: "blue"   },
-  { id: "b2b-revenue",     title: "B2B Revenue Report",     description: "Business-to-Business revenue summary covering corporate accounts, invoices, and payment settlements.",         icon: "b2b",      color: "green"  },
-  { id: "driver-wallet",   title: "Driver Wallet Report",   description: "Driver wallet transactions including earnings, withdrawals, bonuses, and current balances.",                   icon: "driver",   color: "orange" },
-  { id: "customer-wallet", title: "Customer Wallet Report", description: "Customer wallet activity covering top-ups, spending, refunds, and wallet balance history.",                   icon: "customer", color: "purple" },
+  { id: "b2c-revenue",         title: "B2C Revenue Report",                description: "Business-to-Consumer revenue breakdown including transaction totals, refunds, and net revenue by date range.", icon: "b2c",      color: "blue"   },
+  { id: "b2b-revenue",         title: "B2B Revenue Report",                description: "Business-to-Business revenue summary covering corporate accounts, invoices, and payment settlements.",         icon: "b2b",      color: "green"  },
+  { id: "driver-wallet",       title: "Driver Wallet Report",              description: "Driver wallet transactions including earnings, withdrawals, bonuses, and current balances.",                   icon: "driver",   color: "orange" },
+  { id: "customer-wallet",     title: "Customer Wallet Report",            description: "Customer wallet activity covering top-ups, spending, refunds, and wallet balance history.",                   icon: "customer", color: "purple" },
+  { id: "car-rental-bookings", title: "Car Rental Booking Request Report", description: "All car rental booking requests with status, trip details, vehicle info, pricing, and payment breakdown.",    icon: "b2b",      color: "blue"   },
+  { id: "car-rental-revenue",  title: "Car Rental Revenue Report",         description: "Completed car rental trips (status 4 & 8) with full trip financials, fare breakdown, and payment details.",  icon: "b2c",      color: "green"  },
 ];
 
 export default async function DashboardPage() {
