@@ -65,10 +65,10 @@ export async function GET(req: NextRequest) {
       completed: number;
     }>(`
       SELECT
-        CONCAT('W', WEEK(b.created_at, 1), ' ', YEAR(b.created_at)) AS week_label,
-        DATE(MIN(b.created_at))                                       AS week_start,
-        COUNT(*)                                                       AS total_requests,
-        SUM(CASE WHEN b.status_id IN (4, 8) THEN 1 ELSE 0 END)       AS completed
+        CONCAT('W', WEEK(MIN(b.created_at), 1), ' ', YEAR(MIN(b.created_at))) AS week_label,
+        DATE(MIN(b.created_at))                                                 AS week_start,
+        COUNT(*)                                                                AS total_requests,
+        SUM(CASE WHEN b.status_id IN (4, 8) THEN 1 ELSE 0 END)                AS completed
       FROM booking b
       WHERE b.created_at >= DATE_SUB(?, INTERVAL 5 WEEK)
         AND b.created_at <= ?
