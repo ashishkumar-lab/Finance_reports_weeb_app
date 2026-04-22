@@ -70,12 +70,12 @@ export async function GET(req: NextRequest) {
         COUNT(*)                                                                AS total_requests,
         SUM(CASE WHEN b.status_id IN (4, 8) THEN 1 ELSE 0 END)                AS completed
       FROM booking b
-      WHERE b.created_at >= DATE_SUB(?, INTERVAL 5 WEEK)
-        AND b.created_at <= ?
+      WHERE b.created_at >= DATE_SUB(NOW(), INTERVAL 5 WEEK)
+        AND b.created_at <= NOW()
       GROUP BY YEARWEEK(b.created_at, 1)
       ORDER BY YEARWEEK(b.created_at, 1) ASC
       LIMIT 5
-    `, [endDt, endDt]);
+    `, []);
 
     const weekly = weeklyRows.map((r) => {
       const req = Number(r.total_requests);
