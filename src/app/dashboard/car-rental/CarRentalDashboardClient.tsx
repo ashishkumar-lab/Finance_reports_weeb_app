@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
@@ -42,6 +43,7 @@ const CARDS = [
 ];
 
 export default function CarRentalDashboardClient() {
+  const router = useRouter();
   const [startDate, setStartDate] = useState(firstDay);
   const [endDate, setEndDate] = useState(today);
   const [data, setData] = useState<DashboardData | null>(null);
@@ -106,12 +108,19 @@ export default function CarRentalDashboardClient() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             {CARDS.map((card) => {
               const val = data.summary[card.key as keyof Summary];
+              const filterKey = card.key === "totalRequests" ? "all" : card.key;
               return (
-                <div key={card.key} className={`${card.color} border rounded-xl p-4 text-center`}>
+                <button
+                  key={card.key}
+                  onClick={() => router.push(
+                    `/dashboard/car-rental/detail?filter=${filterKey}&startDate=${startDate}&endDate=${endDate}`
+                  )}
+                  className={`${card.color} border rounded-xl p-4 text-center hover:shadow-md hover:scale-105 transition-all cursor-pointer w-full`}>
                   <p className="text-2xl mb-1">{card.icon}</p>
                   <p className={`text-2xl font-bold ${card.text}`}>{val.toLocaleString()}</p>
                   <p className="text-xs text-gray-500 mt-1 leading-tight">{card.label}</p>
-                </div>
+                  <p className="text-xs text-blue-500 mt-1">View details →</p>
+                </button>
               );
             })}
           </div>
