@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, YAxis as RightYAxis,
+  Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 
 interface Summary {
@@ -138,9 +138,10 @@ export default function CarRentalDashboardClient() {
                     tick={{ fontSize: 12 }}
                     label={{ value: "Completion %", angle: 90, position: "insideRight", offset: 10, style: { fontSize: 11 } }} />
                   <Tooltip
-                    formatter={(value: number, name: string) => {
-                      if (name === "Completion %") return [`${value}%`, name];
-                      return [value.toLocaleString(), name];
+                    formatter={(value, name) => {
+                      const n = Number(value);
+                      if (name === "Completion %") return [`${n}%`, name];
+                      return [n.toLocaleString(), name];
                     }}
                   />
                   <Legend />
