@@ -1,9 +1,8 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/authOptions";
-import Navbar from "@/components/Navbar";
+import AppLayout from "@/components/AppLayout";
 import ReportCard from "@/components/ReportCard";
-import Footer from "@/components/Footer";
 import { getUserPermissions, ALL_REPORTS } from "@/lib/userDb";
 
 const reports = [
@@ -32,25 +31,11 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar userName={session.user?.name ?? "User"} isAdmin={session.user.isAdmin} />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1">
+    <AppLayout userName={session.user?.name ?? "User"} isAdmin={session.user.isAdmin}>
+      <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Finance Reports</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Finance Reports</h1>
           <p className="text-gray-500 mt-1">Select a report, choose a date range, and download as Excel.</p>
-        </div>
-
-        {/* Stats bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-          {reports.map((r) => (
-            <div key={r.id} className="bg-white rounded-xl border border-gray-200 px-4 py-3 text-center">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">{r.title.replace(" Report", "")}</p>
-              <p className={`text-sm font-semibold mt-1 ${allowedReports.includes(r.id) ? "text-green-600" : "text-gray-400"}`}>
-                {allowedReports.includes(r.id) ? "Available" : "Locked"}
-              </p>
-            </div>
-          ))}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -62,8 +47,7 @@ export default async function DashboardPage() {
             />
           ))}
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </AppLayout>
   );
 }
