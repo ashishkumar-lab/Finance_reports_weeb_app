@@ -37,6 +37,8 @@ SELECT
     CASE
         WHEN wallet_wallettxnlog.txn_desc LIKE '%incentive%' THEN 'Incentive'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%ONB_Refund%' THEN 'Incentive'
+        WHEN wallet_wallettxnlog.txn_desc LIKE '%Charges - Accident deposit%' THEN 'Accident Deposit'
+        WHEN wallet_wallettxnlog.txn_desc LIKE '%Refund - Accident deposit%' THEN 'Accident Deposit'
         WHEN wallet_wallettxnlog.txn_desc LIKE 'Refund - %' THEN 'Penalty-Refund'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%Cancellation Charges%' THEN 'Cancellation Charges'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%cancellation-charges%' THEN 'Cancellation Charges'
@@ -56,9 +58,6 @@ SELECT
         WHEN wallet_wallettxnlog.txn_desc LIKE '%PD Subscription%' THEN 'PD Subscription'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%pd-subscription%' THEN 'PD Subscription'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%background-verification-cost' THEN 'Background Verification'
-        WHEN wallet_wallettxnlog.txn_desc LIKE '%background verification cost' THEN 'Background Verification'
-        WHEN wallet_wallettxnlog.txn_desc LIKE '%Charges - Accident deposit%' THEN 'Accident Deposit'
-        WHEN wallet_wallettxnlog.txn_desc LIKE '%Refund - Accident deposit%' THEN 'Accident Deposit'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%Token amount refunded%' THEN 'Booking''s Token Amount Refund'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%Refund%' THEN 'Refund'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%Token%' THEN 'Booking''s Token Amount'
@@ -179,8 +178,7 @@ LEFT OUTER JOIN tariff_cityservicetype cst
 LEFT OUTER JOIN tariff_servicetype st
     ON st.id = cst.service_type_id
 
-WHERE wallet_wallettxnlog.defaulted = 0
-AND d.id IS NOT NULL
+WHERE d.id IS NOT NULL
 AND d.service_type != 20
 AND DATE(wallet_wallettxnlog.created_at) >= ?
 AND DATE(wallet_wallettxnlog.created_at) <= ?
