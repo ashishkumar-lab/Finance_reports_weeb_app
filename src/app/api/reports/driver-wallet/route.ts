@@ -57,6 +57,8 @@ SELECT
         WHEN wallet_wallettxnlog.txn_desc LIKE '%pd-subscription%' THEN 'PD Subscription'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%background-verification-cost' THEN 'Background Verification'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%background verification cost' THEN 'Background Verification'
+        WHEN wallet_wallettxnlog.txn_desc LIKE '%Charges - Accident deposit%' THEN 'Accident Deposit'
+        WHEN wallet_wallettxnlog.txn_desc LIKE '%Refund - Accident deposit%' THEN 'Accident Deposit'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%Token amount refunded%' THEN 'Booking''s Token Amount Refund'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%Refund%' THEN 'Refund'
         WHEN wallet_wallettxnlog.txn_desc LIKE '%Token%' THEN 'Booking''s Token Amount'
