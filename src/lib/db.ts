@@ -25,7 +25,9 @@ const driveuPool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   ssl: { rejectUnauthorized: false },
-  connectTimeout: 30000,
+  connectTimeout: 60000,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
 });
 
 export async function query<T = unknown>(
@@ -51,9 +53,11 @@ export async function driveuQueryLong<T = unknown>(
 ): Promise<T[]> {
   const conn = await driveuPool.getConnection();
   try {
-    await conn.execute('SET SESSION net_read_timeout = 31536000');
-    await conn.execute('SET SESSION net_write_timeout = 31536000');
-    await conn.execute('SET SESSION wait_timeout = 31536000');
+    await conn.execute('SET SESSION net_read_timeout = 3600');
+    await conn.execute('SET SESSION net_write_timeout = 3600');
+    await conn.execute('SET SESSION wait_timeout = 3600');
+    await conn.execute('SET SESSION interactive_timeout = 3600');
+    await conn.execute('SET SESSION max_execution_time = 0');
     const [rows] = await conn.execute(sql, params);
     return rows as T[];
   } finally {
