@@ -179,7 +179,8 @@ LEFT OUTER JOIN tariff_cityservicetype cst
 LEFT OUTER JOIN tariff_servicetype st
     ON st.id = cst.service_type_id
 
-WHERE d.id IS NOT NULL
+WHERE wallet_wallettxnlog.defaulted = 0
+AND d.id IS NOT NULL
 AND d.service_type != 20
 AND DATE(wallet_wallettxnlog.created_at) >= ?
 AND DATE(wallet_wallettxnlog.created_at) <= ?
