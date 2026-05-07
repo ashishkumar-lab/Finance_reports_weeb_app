@@ -115,7 +115,22 @@ SELECT
                 END
             END
         END
-    END AS Category
+    END AS Category,
+
+    CASE
+        WHEN pd_ep.name LIKE '%E5%B2B%' THEN 'E5_B2B'
+        WHEN pd_ep.name LIKE '%E3%B2B%' THEN 'E3_B2B'
+        WHEN pd_ep.name LIKE '%E4%B2B%' THEN 'E4_B2B'
+        WHEN pd_ep.name LIKE '%Know your system%' THEN 'Know your system'
+        WHEN pd_ep.name LIKE '%E5%' THEN 'E5'
+        WHEN pd_ep.name LIKE '%E3%' THEN 'E3'
+        WHEN pd_ep.name LIKE '%E4%' THEN 'E4'
+        WHEN pd_ep.name LIKE '%B2C%' THEN 'B2C'
+        WHEN pd_ep.name LIKE '%B2B%' THEN 'B2B'
+        WHEN pd_ep.name LIKE '%Weekend%' THEN 'B2C'
+        WHEN pd_ep.name LIKE '%time_plan%' THEN 'time_plan'
+        ELSE ''
+    END AS plan_category
 
 FROM wallet_wallettxnlog
 
@@ -179,6 +194,19 @@ LEFT OUTER JOIN tariff_cityservicetype cst
 LEFT OUTER JOIN tariff_servicetype st
     ON st.id = cst.service_type_id
 
+LEFT JOIN earning_plan pd_ep
+    ON pd_ep.id = CASE
+        WHEN wallet_wallettxnlog.reference_id LIKE '%PD_SUB-REFUND%'
+            THEN SUBSTRING_INDEX(SUBSTRING_INDEX(wallet_wallettxnlog.reference_id, '-', 4), '-', -1)
+        WHEN wallet_wallettxnlog.reference_id LIKE '%PD_SUB-GST-REFUND%'
+            THEN SUBSTRING_INDEX(SUBSTRING_INDEX(wallet_wallettxnlog.reference_id, '-', 5), '-', -1)
+        WHEN wallet_wallettxnlog.txn_desc = 'PD Subscription' OR wallet_wallettxnlog.txn_desc = 'pd-subscription'
+            THEN SUBSTRING_INDEX(SUBSTRING_INDEX(wallet_wallettxnlog.reference_id, '-', 3), '-', -1)
+        WHEN wallet_wallettxnlog.txn_desc = 'PD Subscription GST' OR wallet_wallettxnlog.txn_desc = 'pd-subscription-gst'
+            THEN SUBSTRING_INDEX(SUBSTRING_INDEX(wallet_wallettxnlog.reference_id, '-', 4), '-', -1)
+        ELSE NULL
+    END
+
 WHERE wallet_wallettxnlog.defaulted = 0
 AND d.id IS NOT NULL
 AND d.service_type != 20
@@ -205,6 +233,7 @@ const COLUMNS = [
   { header: "Comments",             key: "comments",              width: 30 },
   { header: "Transaction Date",     key: "Transaction_Date",      width: 22 },
   { header: "Category",             key: "Category",              width: 14 },
+  { header: "Plan Category",        key: "plan_category",         width: 20 },
 ];
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
