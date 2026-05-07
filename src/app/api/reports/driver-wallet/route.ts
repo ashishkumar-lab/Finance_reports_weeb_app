@@ -194,7 +194,7 @@ LEFT OUTER JOIN tariff_cityservicetype cst
 LEFT OUTER JOIN tariff_servicetype st
     ON st.id = cst.service_type_id
 
-LEFT JOIN earning_plan pd_ep
+LEFT JOIN driveu.earning_plan pd_ep
     ON pd_ep.id = CASE
         WHEN wallet_wallettxnlog.reference_id LIKE '%PD_SUB-REFUND%'
             THEN SUBSTRING_INDEX(SUBSTRING_INDEX(wallet_wallettxnlog.reference_id, '-', 4), '-', -1)
