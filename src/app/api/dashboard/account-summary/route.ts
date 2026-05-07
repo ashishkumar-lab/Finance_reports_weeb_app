@@ -1,7 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { driveuQuery } from "@/lib/db";
+import { driveuQuery, financePool } from "@/lib/db";
+
+// ── Cache helpers (finance DB) ─────────────────────────────────────────────
+
+async function ensureCacheTable() {
+  await financePool.execute(`
+    CREATE TABLE IF NOT EXISTS account_summary_cache (
+      cache_key VARCHAR(100) PRIMARY KEY,
+      data_json LONGTEXT NOT NULL,
+      cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+}
+
+async function getFromCache(key: string): Promise<Record<string, unknown> | null> {
+  try {
+    await ensureCacheTable();
+    const [rows] = await financePool.execute(
+      `SELECT data_json FROM account_summary_cache WHERE cache_key = ?`,
+      [key]
+    );
+    const list = rows as { data_json: string }[];
+    return list.length > 0 ? JSON.parse(list[0].data_json) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveToCache(key: string, data: object): Promise<void> {
+  try {
+    await ensureCacheTable();
+    const json = JSON.stringify(data);
+    await financePool.execute(
+      `INSERT INTO account_summary_cache (cache_key, data_json)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE data_json = ?, cached_at = CURRENT_TIMESTAMP`,
+      [key, json, json]
+    );
+  } catch {
+    // cache save failure is non-fatal
+  }
+}
+
+// ── Queries ────────────────────────────────────────────────────────────────
 
 const B2C_SUMMARY_QUERY = `
 SELECT
@@ -173,28 +216,49 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
+  const fromCache = searchParams.get("fromCache") === "true";
 
   if (!startDate || !endDate)
     return NextResponse.json({ error: "startDate and endDate are required." }, { status: 400 });
   if (!DATE_REGEX.test(startDate) || !DATE_REGEX.test(endDate))
     return NextResponse.json({ error: "Invalid date format." }, { status: 400 });
 
-  try {
-    const [b2cRows, b2bRows, driverWalletRows, customerWalletRows] = await Promise.all([
-      driveuQuery<Record<string, unknown>>(B2C_SUMMARY_QUERY, [startDate, endDate]),
-      driveuQuery<Record<string, unknown>>(B2B_SUMMARY_QUERY, [startDate, endDate]),
-      driveuQuery<Record<string, unknown>>(DRIVER_WALLET_VERTICAL_QUERY, [startDate, endDate]),
-      driveuQuery<Record<string, unknown>>(CUSTOMER_WALLET_VERTICAL_QUERY, [startDate, endDate]),
-    ]);
+  const cacheKey = `${startDate}_${endDate}`;
 
-    return NextResponse.json({
-      b2c: b2cRows[0] ?? null,
-      b2b: b2bRows[0] ?? null,
-      driverWallet: driverWalletRows,
-      customerWallet: customerWalletRows,
-    });
-  } catch (err) {
-    console.error("[Account Summary] Error:", err);
-    return NextResponse.json({ error: "Failed to load summary." }, { status: 500 });
+  // Return cached data if requested (initial page load)
+  if (fromCache) {
+    const cached = await getFromCache(cacheKey);
+    if (cached) return NextResponse.json({ ...cached, fromCache: true });
   }
+
+  // Run each query independently — partial failures don't break the rest
+  const [b2cResult, b2bResult, dwResult, cwResult] = await Promise.allSettled([
+    driveuQuery<Record<string, unknown>>(B2C_SUMMARY_QUERY, [startDate, endDate]),
+    driveuQuery<Record<string, unknown>>(B2B_SUMMARY_QUERY, [startDate, endDate]),
+    driveuQuery<Record<string, unknown>>(DRIVER_WALLET_VERTICAL_QUERY, [startDate, endDate]),
+    driveuQuery<Record<string, unknown>>(CUSTOMER_WALLET_VERTICAL_QUERY, [startDate, endDate]),
+  ]);
+
+  const result = {
+    b2c:           b2cResult.status === "fulfilled" ? (b2cResult.value[0] ?? null) : null,
+    b2b:           b2bResult.status === "fulfilled" ? (b2bResult.value[0] ?? null) : null,
+    driverWallet:  dwResult.status  === "fulfilled" ? dwResult.value  : null,
+    customerWallet:cwResult.status  === "fulfilled" ? cwResult.value  : null,
+    errors: {
+      b2c:           b2cResult.status === "rejected" ? "Failed to load B2C data"            : null,
+      b2b:           b2bResult.status === "rejected" ? "Failed to load B2B data"            : null,
+      driverWallet:  dwResult.status  === "rejected" ? "Failed to load Driver Wallet data"  : null,
+      customerWallet:cwResult.status  === "rejected" ? "Failed to load Customer Wallet data": null,
+    },
+  };
+
+  if (b2cResult.status === "rejected") console.error("[Account Summary] B2C:", b2cResult.reason);
+  if (b2bResult.status === "rejected") console.error("[Account Summary] B2B:", b2bResult.reason);
+  if (dwResult.status  === "rejected") console.error("[Account Summary] Driver Wallet:", dwResult.reason);
+  if (cwResult.status  === "rejected") console.error("[Account Summary] Customer Wallet:", cwResult.reason);
+
+  // Save to cache (background — don't await)
+  saveToCache(cacheKey, result);
+
+  return NextResponse.json(result);
 }
