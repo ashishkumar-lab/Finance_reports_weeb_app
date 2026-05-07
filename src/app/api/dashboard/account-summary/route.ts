@@ -81,18 +81,12 @@ SELECT
   SUM(sib.pickup_fare_du) AS pickup_fare_du
 FROM app_booking AS b
 JOIN app_bookingsummary ON app_bookingsummary.booking_id = b.id
-JOIN tariff_cityservicebookingtype AS csbt ON app_bookingsummary.city_service_booking_id = csbt.id
-JOIN driver_driver AS driver ON driver.id = b.driver_id
 JOIN app_bookingfare AS abf ON abf.booking_id = b.id
 LEFT JOIN payment_transaction AS pt ON pt.booking_id = b.booking_id
 JOIN settlements_invoicebreakup AS sib ON sib.booking_id = b.id
 LEFT JOIN settlements_driverearning AS sde ON sde.booking_id = b.id
-LEFT JOIN driver_earningdays ON driver_earningdays.driver_id = b.driver_id AND driver_earningdays.date = DATE(b.pickup_datetime)
-LEFT JOIN earning_plan ON earning_plan.id = driver_earningdays.plan_id
-LEFT OUTER JOIN discounts_dupassredemption ON discounts_dupassredemption.user_id = b.user_id
-  AND DATE(b.pickup_datetime) BETWEEN discounts_dupassredemption.created_at AND discounts_dupassredemption.valid_till
 WHERE sib.is_active = TRUE AND b.status = 5 AND b.is_b2b = 0
-AND DATE(app_bookingsummary.trip_ended_at) BETWEEN ? AND ?
+AND app_bookingsummary.trip_ended_at >= ? AND app_bookingsummary.trip_ended_at < DATE_ADD(?, INTERVAL 1 DAY)
 `;
 
 const B2B_SUMMARY_QUERY = `
@@ -111,9 +105,8 @@ FROM app_booking b
 JOIN app_bookingsummary ON b.id = app_bookingsummary.booking_id
 JOIN app_bookingfare f ON f.booking_id = b.id
 LEFT JOIN settlements_driverearning sde ON sde.booking_id = b.id
-JOIN affiliate_organisation ON b.organisation_id = affiliate_organisation.id
 WHERE b.is_b2b = 1 AND b.status = 5
-AND DATE(b.pickup_datetime) BETWEEN ? AND ?
+AND b.pickup_datetime >= ? AND b.pickup_datetime < DATE_ADD(?, INTERVAL 1 DAY)
 `;
 
 const DRIVER_WALLET_VERTICAL_QUERY = `
@@ -157,7 +150,7 @@ JOIN driver_driver d ON d.id = w.object_id
 JOIN driveu.driver_operator op ON op.id = d.operator_id
 WHERE wallet_wallettxnlog.defaulted = 0
 AND d.id IS NOT NULL AND d.service_type != 20
-AND DATE(wallet_wallettxnlog.created_at) BETWEEN ? AND ?
+AND wallet_wallettxnlog.created_at >= ? AND wallet_wallettxnlog.created_at < DATE_ADD(?, INTERVAL 1 DAY)
 GROUP BY Vertical
 ORDER BY Vertical
 `;
@@ -201,7 +194,7 @@ JOIN auth_user u ON u.id = up.user_id
 JOIN wallet_wallet w ON w.object_id = u.id AND w.content_type_id = 4
 JOIN wallet_wallettxnlog ON wallet_wallettxnlog.wallet_id = w.id AND wallet_wallettxnlog.defaulted = 0
 LEFT OUTER JOIN app_booking ab ON ab.booking_id = wallet_wallettxnlog.reference_id
-WHERE DATE(wallet_wallettxnlog.created_at) BETWEEN ? AND ?
+WHERE wallet_wallettxnlog.created_at >= ? AND wallet_wallettxnlog.created_at < DATE_ADD(?, INTERVAL 1 DAY)
 AND (ab.is_b2b IS NULL OR ab.is_b2b != 1 OR wallet_wallettxnlog.component_type != 'promotional')
 GROUP BY vertical
 ORDER BY vertical
