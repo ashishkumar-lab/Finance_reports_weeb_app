@@ -159,8 +159,8 @@ JOIN wallet_wallet w ON w.object_id = u.id AND w.content_type_id = 4
 JOIN wallet_wallettxnlog ON wallet_wallettxnlog.wallet_id = w.id AND wallet_wallettxnlog.defaulted = 0
 LEFT OUTER JOIN app_booking ab ON ab.booking_id = wallet_wallettxnlog.reference_id
 WHERE DATE(wallet_wallettxnlog.created_at) BETWEEN ? AND ?
+AND (ab.is_b2b IS NULL OR ab.is_b2b != 1 OR wallet_wallettxnlog.component_type != 'promotional')
 GROUP BY vertical
-HAVING CONCAT(CASE ab.is_b2b WHEN 1 THEN 'B2B' WHEN 0 THEN 'B2C' ELSE '' END, wallet_wallettxnlog.component_type) != 'B2Bpromotional'
 ORDER BY vertical
 `;
 
