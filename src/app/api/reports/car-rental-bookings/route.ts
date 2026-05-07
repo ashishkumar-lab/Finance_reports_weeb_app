@@ -160,8 +160,12 @@ export async function GET(req: NextRequest) {
 
   if (!session.user.isAdmin) {
     if (!session.user.dbUserId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    const allowed = await hasReportPermission(session.user.dbUserId, "car-rental-bookings");
-    if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    try {
+      const allowed = await hasReportPermission(session.user.dbUserId, "car-rental-bookings");
+      if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } catch {
+      return NextResponse.json({ error: "Failed to verify permissions." }, { status: 500 });
+    }
   }
 
   const { searchParams } = new URL(req.url);
