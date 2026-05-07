@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 function fmt(val: unknown): string {
   const n = Number(val);
@@ -14,14 +14,17 @@ function fmtInt(val: unknown): string {
   return n.toLocaleString("en-IN");
 }
 
+function pad(n: number) { return String(n).padStart(2, "0"); }
+
+function localDateStr(d: Date) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function lastMonthRange() {
-  const now = new Date();
+  const now   = new Date();
   const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const last  = new Date(now.getFullYear(), now.getMonth(), 0);
-  return {
-    start: first.toISOString().slice(0, 10),
-    end:   last.toISOString().slice(0, 10),
-  };
+  return { start: localDateStr(first), end: localDateStr(last) };
 }
 
 type WalletRow = { Vertical?: string; vertical?: string; total_debit: number; total_credit: number; net: number };
@@ -108,23 +111,34 @@ function Skeleton() {
 export default function AccountSummaryClient() {
   const { start: lmStart, end: lmEnd } = lastMonthRange();
 
-  const [startDate, setStartDate] = useState(lmStart);
-  const [endDate,   setEndDate]   = useState(lmEnd);
-  const [data,      setData]      = useState<SummaryData | null>(null);
-  const [loading,   setLoading]   = useState(false);
-  const [isLastMonth, setIsLastMonth] = useState(true);
+  const [startDate,    setStartDate]    = useState(lmStart);
+  const [endDate,      setEndDate]      = useState(lmEnd);
+  const [appliedStart, setAppliedStart] = useState(lmStart);
+  const [appliedEnd,   setAppliedEnd]   = useState(lmEnd);
+  const [data,         setData]         = useState<SummaryData | null>(null);
+  const [loading,      setLoading]      = useState(false);
+  const [isLastMonth,  setIsLastMonth]  = useState(true);
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(async (start: string, end: string, useCache: boolean) => {
+    // Cancel any in-progress fetch
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
     setLoading(true);
     try {
       const url = `/api/dashboard/account-summary?startDate=${start}&endDate=${end}${useCache ? "&fromCache=true" : ""}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: ctrl.signal });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error ?? "Failed to load");
       }
       setData(await res.json());
-    } catch {
+      setAppliedStart(start);
+      setAppliedEnd(end);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       setData(null);
     } finally {
       setLoading(false);
@@ -138,15 +152,17 @@ export default function AccountSummaryClient() {
   }, []);
 
   function handleApply() {
-    const isLM = startDate === lmStart && endDate === lmEnd;
-    setIsLastMonth(isLM);
+    setIsLastMonth(startDate === lmStart && endDate === lmEnd);
     fetchData(startDate, endDate, false);
   }
 
-  function handleDateChange(field: "start" | "end", val: string) {
-    if (field === "start") setStartDate(val);
-    else setEndDate(val);
+  function handleCancel() {
+    // Reset pickers back to the last successfully applied range
+    setStartDate(appliedStart);
+    setEndDate(appliedEnd);
   }
+
+  const isDirty = startDate !== appliedStart || endDate !== appliedEnd;
 
   const hasAnyData = data && (data.b2c || data.b2b || data.driverWallet || data.customerWallet);
 
@@ -170,13 +186,13 @@ export default function AccountSummaryClient() {
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label>
           <input type="date" value={startDate}
-            onChange={e => handleDateChange("start", e.target.value)}
+            onChange={e => setStartDate(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">End Date</label>
           <input type="date" value={endDate}
-            onChange={e => handleDateChange("end", e.target.value)}
+            onChange={e => setEndDate(e.target.value)}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <button onClick={handleApply} disabled={loading}
@@ -189,7 +205,13 @@ export default function AccountSummaryClient() {
           )}
           {loading ? "Loading..." : "Apply"}
         </button>
-        {isLastMonth && !loading && (
+        {isDirty && !loading && (
+          <button onClick={handleCancel}
+            className="border border-gray-300 hover:border-gray-400 text-gray-600 hover:text-gray-800 px-5 py-2 rounded-lg text-sm font-medium transition-colors">
+            Cancel
+          </button>
+        )}
+        {isLastMonth && !loading && !isDirty && (
           <span className="text-xs text-gray-400">Showing last month ({lmStart} to {lmEnd})</span>
         )}
       </div>
