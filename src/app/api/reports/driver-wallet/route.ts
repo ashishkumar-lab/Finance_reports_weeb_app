@@ -10,7 +10,12 @@ SELECT
     d.id AS DriverId,
     d.first_name AS DriverName,
     st.name AS service_type,
-    c.name AS City,
+    CASE
+        WHEN c.name LIKE '%Gurgaon%' THEN 'Gurgaon'
+        WHEN tariff_citysubzone.zone_name LIKE '%Gurgaon%' THEN 'Gurgaon'
+        ELSE c.name
+    END AS City,
+    tariff_citysubzone.zone_name AS Zone,
     CONCAT("'", wallet_wallettxnlog.reference_id) AS convert_reference_id,
     wallet_wallettxnlog.reference_id,
     IF(wallet_wallettxnlog.txn_type = 'DEBIT', wallet_wallettxnlog.amount, '') AS Debit,
@@ -185,6 +190,9 @@ LEFT OUTER JOIN affiliate_organisation can_org
 LEFT OUTER JOIN app_bookingsummary
     ON app_bookingsummary.booking_id = b.id
 
+LEFT OUTER JOIN tariff_citysubzone
+    ON tariff_citysubzone.id = app_bookingsummary.zone_id
+
 LEFT OUTER JOIN tariff_cityservicebookingtype csbt
     ON csbt.id = app_bookingsummary.city_service_booking_id
 
@@ -221,6 +229,7 @@ const COLUMNS = [
   { header: "Driver Name",          key: "DriverName",            width: 22 },
   { header: "Service Type",         key: "service_type",          width: 18 },
   { header: "City",                 key: "City",                  width: 16 },
+  { header: "Zone",                 key: "Zone",                  width: 20 },
   { header: "Ref ID (Formatted)",   key: "convert_reference_id",  width: 24 },
   { header: "Reference ID",         key: "reference_id",          width: 24 },
   { header: "Debit",                key: "Debit",                 width: 14 },

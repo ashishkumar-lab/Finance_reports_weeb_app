@@ -10,7 +10,10 @@ SELECT
     b.id,
     b.booking_id,
     CONCAT("'", b.booking_id) AS 'Formated booking_id',
-    tariff_city.name AS 'City Name',
+    CASE
+        WHEN tariff_city.name LIKE '%Delhi NCR%' AND sib.gstin_number = '06AADCH6500J2ZR' THEN 'Gurgaon'
+        ELSE tariff_city.name
+    END AS 'City Name',
     tariff_citysubzone.zone_name AS 'Zone Name',
     csbt.service_type,
     b.user_id,
@@ -22,6 +25,7 @@ SELECT
     app_bookingsummary.trip_started_at,
     app_bookingsummary.trip_ended_at,
     abf.trip_time,
+    abf.actual_distance,
     app_bookingsummary.src,
 
     CASE
@@ -200,6 +204,7 @@ LEFT OUTER JOIN discounts_dupassredemption
 WHERE sib.is_active = TRUE
 AND b.status = 5
 AND b.is_b2b = 0
+AND LOWER(csbt.service_type) != 'coach'
 AND DATE(app_bookingsummary.trip_ended_at) BETWEEN ? AND ?
 
 GROUP BY b.booking_id
@@ -223,6 +228,7 @@ const COLUMNS = [
   { header: "Trip Started At",        key: "trip_started_at",          width: 22 },
   { header: "Trip Ended At",          key: "trip_ended_at",            width: 22 },
   { header: "Trip Time",              key: "trip_time",                width: 14 },
+  { header: "Actual Distance",        key: "actual_distance",          width: 18 },
   { header: "Src",                    key: "src",                      width: 14 },
   { header: "Category",              key: "Category",                 width: 16 },
   { header: "Driver Fee",             key: "driver_fee",               width: 14 },
