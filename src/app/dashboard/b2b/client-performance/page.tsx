@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/authOptions";
 import { getUserPermissions } from "@/lib/userDb";
 import AppLayout from "@/components/AppLayout";
 import B2BClientPerfClient from "./B2BClientPerfClient";
+import DashboardLocked from "@/components/DashboardLocked";
 
 export default async function B2BClientPerformancePage() {
   const session = await getServerSession(authOptions);
@@ -12,23 +13,28 @@ export default async function B2BClientPerformancePage() {
   if (session.user.status === "pending") redirect("/pending");
   if (session.user.status === "rejected") redirect("/login?error=rejected");
 
-  if (!session.user.isAdmin) {
-    const perms = await getUserPermissions(session.user.dbUserId!);
-    if (!perms.includes("dash-b2b-client-performance")) redirect("/unauthorized");
-  }
+  const hasAccess = session.user.isAdmin || (
+    session.user.dbUserId
+      ? (await getUserPermissions(session.user.dbUserId)).includes("dash-b2b-client-performance")
+      : false
+  );
 
   return (
     <AppLayout userName={session.user?.name ?? "User"} isAdmin={session.user.isAdmin}>
-      <Suspense fallback={
-        <div className="flex items-center justify-center py-24">
-          <svg className="animate-spin w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-          </svg>
-        </div>
-      }>
-        <B2BClientPerfClient />
-      </Suspense>
+      {!hasAccess ? (
+        <DashboardLocked dashboardId="dash-b2b-client-performance" dashboardName="B2B Client Performance" />
+      ) : (
+        <Suspense fallback={
+          <div className="flex items-center justify-center py-24">
+            <svg className="animate-spin w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            </svg>
+          </div>
+        }>
+          <B2BClientPerfClient />
+        </Suspense>
+      )}
     </AppLayout>
   );
 }

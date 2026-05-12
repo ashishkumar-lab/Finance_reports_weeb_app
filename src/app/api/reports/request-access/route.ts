@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { createAccessRequest, getUserById, ALL_REPORTS } from "@/lib/userDb";
+import { createAccessRequest, getUserById, ALL_REPORTS, ALL_DASHBOARDS } from "@/lib/userDb";
 import { sendReportAccessRequestEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
   const { reportId } = await req.json().catch(() => ({}));
   if (!reportId) return NextResponse.json({ error: "reportId is required." }, { status: 400 });
 
-  const report = ALL_REPORTS.find((r) => r.id === reportId);
+  const report = ALL_REPORTS.find((r) => r.id === reportId)
+    ?? ALL_DASHBOARDS.find((d) => d.id === reportId);
   if (!report) return NextResponse.json({ error: "Invalid report." }, { status: 400 });
 
   if (!session.user.dbUserId) {
