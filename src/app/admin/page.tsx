@@ -17,6 +17,7 @@ interface User {
 }
 
 interface Report { id: string; name: string; }
+interface Dashboard { id: string; name: string; }
 
 const STATUS_BADGE: Record<string, string> = {
   pending:  "bg-yellow-100 text-yellow-700",
@@ -29,6 +30,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState("");
@@ -49,6 +51,7 @@ export default function AdminPage() {
     const data = await res.json();
     setUsers(data.users ?? []);
     setReports(data.reports ?? []);
+    setDashboards(data.dashboards ?? []);
     setLoading(false);
   }
 
@@ -130,7 +133,7 @@ export default function AdminPage() {
           <Section title="Pending Approval" count={pending.length} accent="yellow">
             <div className="divide-y divide-gray-100">
               {pending.map((u) => (
-                <UserRow key={u.id} user={u} reports={reports}
+                <UserRow key={u.id} user={u} reports={reports} dashboards={dashboards}
                   actionLoading={actionLoading}
                   onApprove={() => handleAction(u.id, "approve")}
                   onReject={() => handleAction(u.id, "reject")}
@@ -164,7 +167,7 @@ export default function AdminPage() {
           <Section title="Rejected Users" count={rejected.length} accent="red">
             <div className="divide-y divide-gray-100">
               {rejected.map((u) => (
-                <UserRow key={u.id} user={u} reports={reports}
+                <UserRow key={u.id} user={u} reports={reports} dashboards={dashboards}
                   actionLoading={actionLoading}
                   onApprove={() => handleAction(u.id, "approve")}
                   onReject={() => handleAction(u.id, "reject")}
@@ -187,6 +190,29 @@ export default function AdminPage() {
   );
 }
 
+function PermissionToggle({ label, granted, onClick }: { label: string; granted: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+        granted
+          ? "bg-primary-50 border-primary-300 text-primary-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+          : "bg-gray-50 border-gray-300 text-gray-500 hover:bg-green-50 hover:border-green-300 hover:text-green-600"
+      }`}>
+      {granted ? (
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+      ) : (
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      )}
+      {label}
+    </button>
+  );
+}
+
 function Section({ title, count, accent, children }: {
   title: string; count: number; accent: string; children: React.ReactNode;
 }) {
@@ -206,9 +232,10 @@ function Section({ title, count, accent, children }: {
   );
 }
 
-function UserRow({ user, reports, actionLoading, onApprove, onReject, onTogglePermission, showPermissions }: {
+function UserRow({ user, reports, dashboards, actionLoading, onApprove, onReject, onTogglePermission, showPermissions }: {
   user: User;
   reports: Report[];
+  dashboards: Dashboard[];
   actionLoading: string | null;
   onApprove: () => void;
   onReject: () => void;
@@ -258,32 +285,35 @@ function UserRow({ user, reports, actionLoading, onApprove, onReject, onTogglePe
         </div>
       </div>
 
-      {/* Report permissions (only for approved users) */}
+      {/* Permissions (only for approved users) */}
       {showPermissions && (
-        <div className="mt-3 ml-12 flex flex-wrap gap-2">
-          {reports.map((r) => {
-            const granted = user.permissions.includes(r.id);
-            return (
-              <button key={r.id} onClick={() => onTogglePermission(r.id, granted)}
-                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                  granted
-                    ? "bg-primary-50 border-primary-300 text-primary-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
-                    : "bg-gray-50 border-gray-300 text-gray-500 hover:bg-green-50 hover:border-green-300 hover:text-green-600"
-                }`}>
-                {granted ? (
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                )}
-                {r.name.replace(" Report", "")}
-              </button>
-            );
-          })}
+        <div className="mt-3 ml-12 space-y-2">
+          {/* Reports */}
+          <div>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Reports</p>
+            <div className="flex flex-wrap gap-2">
+              {reports.map((r) => {
+                const granted = user.permissions.includes(r.id);
+                return (
+                  <PermissionToggle key={r.id} label={r.name.replace(" Report", "")} granted={granted}
+                    onClick={() => onTogglePermission(r.id, granted)} />
+                );
+              })}
+            </div>
+          </div>
+          {/* Dashboards */}
+          <div>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Dashboards</p>
+            <div className="flex flex-wrap gap-2">
+              {dashboards.map((d) => {
+                const granted = user.permissions.includes(d.id);
+                return (
+                  <PermissionToggle key={d.id} label={d.name} granted={granted}
+                    onClick={() => onTogglePermission(d.id, granted)} />
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>

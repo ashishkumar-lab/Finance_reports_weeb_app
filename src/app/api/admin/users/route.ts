@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { getAllUsers, getUserPermissions, ALL_REPORTS } from "@/lib/userDb";
+import { getAllUsers, getUserPermissions, ALL_REPORTS, ALL_DASHBOARDS } from "@/lib/userDb";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -17,5 +17,5 @@ export async function GET() {
     }))
   );
 
-  return NextResponse.json({ users: usersWithPermissions, reports: ALL_REPORTS });
+  return NextResponse.json({ users: usersWithPermissions, reports: ALL_REPORTS, dashboards: ALL_DASHBOARDS });
 }

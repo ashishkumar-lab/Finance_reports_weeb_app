@@ -19,6 +19,12 @@ export const ALL_REPORTS = [
   { id: "car-rental-revenue",     name: "Car Rental Revenue Report" },
 ];
 
+export const ALL_DASHBOARDS = [
+  { id: "dash-account-summary",        name: "Account Summary" },
+  { id: "dash-car-rental",             name: "Car Rental" },
+  { id: "dash-b2b-client-performance", name: "B2B Client Performance" },
+];
+
 async function ensureTables() {
   await driveuPool.execute(`
     CREATE TABLE IF NOT EXISTS finance.finance_users (

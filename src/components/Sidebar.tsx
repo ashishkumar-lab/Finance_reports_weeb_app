@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-type NavChild = { label: string; href: string; icon: React.ReactNode };
+type NavChild = { label: string; href: string; icon: React.ReactNode; permissionId: string };
 type NavItem =
   | { label: string; href: string; icon: React.ReactNode; children?: undefined; groupKey?: undefined }
   | { label: string; href?: undefined; icon: React.ReactNode; children: NavChild[]; groupKey: string };
@@ -33,6 +33,7 @@ const NAV: NavItem[] = [
       {
         label: "Account Summary",
         href: "/dashboard/account-summary",
+        permissionId: "dash-account-summary",
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -43,6 +44,7 @@ const NAV: NavItem[] = [
       {
         label: "Car Rental",
         href: "/dashboard/car-rental",
+        permissionId: "dash-car-rental",
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -53,6 +55,7 @@ const NAV: NavItem[] = [
       {
         label: "B2B Client Performance",
         href: "/dashboard/b2b/client-performance",
+        permissionId: "dash-b2b-client-performance",
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -67,6 +70,14 @@ const NAV: NavItem[] = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [dashOpen, setDashOpen] = useState(pathname.startsWith("/dashboard/"));
+  const [permissions, setPermissions] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/user/permissions")
+      .then((r) => r.json())
+      .then((d) => setPermissions(d.permissions ?? []))
+      .catch(() => setPermissions([]));
+  }, []);
 
   return (
     <aside className="w-56 min-h-screen bg-[#1e3a8a] flex flex-col flex-shrink-0">
@@ -92,7 +103,11 @@ export default function Sidebar() {
             );
           }
 
-          const groupActive = item.children!.some((c) => pathname.startsWith(c.href));
+          const visibleChildren = item.children!.filter(
+            (c) => permissions === null || permissions.includes(c.permissionId)
+          );
+          if (visibleChildren.length === 0) return null;
+          const groupActive = visibleChildren.some((c) => pathname.startsWith(c.href));
           return (
             <div key={item.groupKey}>
               <button
@@ -109,7 +124,7 @@ export default function Sidebar() {
               </button>
               {dashOpen && (
                 <div className="ml-4 mt-1 space-y-1">
-                  {item.children!.map((child) => {
+                  {visibleChildren.map((child) => {
                     const active = pathname.startsWith(child.href);
                     return (
                       <Link key={child.href} href={child.href}

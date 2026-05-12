@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { authOptions } from "@/lib/authOptions";
+import { getUserPermissions } from "@/lib/userDb";
 import AppLayout from "@/components/AppLayout";
 import B2BClientPerfClient from "./B2BClientPerfClient";
 
@@ -10,6 +11,11 @@ export default async function B2BClientPerformancePage() {
   if (!session) redirect("/login");
   if (session.user.status === "pending") redirect("/pending");
   if (session.user.status === "rejected") redirect("/login?error=rejected");
+
+  if (!session.user.isAdmin) {
+    const perms = await getUserPermissions(session.user.dbUserId!);
+    if (!perms.includes("dash-b2b-client-performance")) redirect("/unauthorized");
+  }
 
   return (
     <AppLayout userName={session.user?.name ?? "User"} isAdmin={session.user.isAdmin}>

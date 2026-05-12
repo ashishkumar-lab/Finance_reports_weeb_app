@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { getUserById, updateUserStatus, setUserPermission } from "@/lib/userDb";
 import { sendApprovalEmail, sendRejectionEmail, sendAccessGrantedEmail } from "@/lib/email";
-import { ALL_REPORTS } from "@/lib/userDb";
+import { ALL_REPORTS, ALL_DASHBOARDS } from "@/lib/userDb";
 
 export async function POST(
   req: NextRequest,
@@ -26,9 +26,12 @@ export async function POST(
   // Approve / Reject user
   if (action === "approve") {
     await updateUserStatus(userId, "approved");
-    // Grant all reports by default on approval
+    // Grant all reports and dashboards by default on approval
     for (const r of ALL_REPORTS) {
       await setUserPermission(userId, r.id, true);
+    }
+    for (const d of ALL_DASHBOARDS) {
+      await setUserPermission(userId, d.id, true);
     }
     await sendApprovalEmail(user.email, user.name);
     return NextResponse.json({ message: "User approved and notified." });
