@@ -92,7 +92,7 @@ export default function Sidebar() {
             );
           }
 
-          const groupActive = item.children.some((c) => pathname.startsWith(c.href));
+          const groupActive = item.children!.some((c) => pathname.startsWith(c.href));
           return (
             <div key={item.groupKey}>
               <button
@@ -109,7 +109,7 @@ export default function Sidebar() {
               </button>
               {dashOpen && (
                 <div className="ml-4 mt-1 space-y-1">
-                  {item.children.map((child) => {
+                  {item.children!.map((child) => {
                     const active = pathname.startsWith(child.href);
                     return (
                       <Link key={child.href} href={child.href}
