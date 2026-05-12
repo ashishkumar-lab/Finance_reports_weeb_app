@@ -150,7 +150,7 @@ export default function AdminPage() {
           <Section title="Approved Users" count={approved.length} accent="green">
             <div className="divide-y divide-gray-100">
               {approved.map((u) => (
-                <UserRow key={u.id} user={u} reports={reports}
+                <UserRow key={u.id} user={u} reports={reports} dashboards={dashboards}
                   actionLoading={actionLoading}
                   onApprove={() => handleAction(u.id, "approve")}
                   onReject={() => handleAction(u.id, "reject")}
