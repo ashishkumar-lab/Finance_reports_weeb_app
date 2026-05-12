@@ -17,6 +17,7 @@ const NAV = [
   },
   {
     label: "Dashboard",
+    key: "dashboard",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -46,13 +47,41 @@ const NAV = [
       },
     ],
   },
+  {
+    label: "B2B",
+    key: "b2b",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+    ),
+    children: [
+      {
+        label: "Client Performance",
+        href: "/dashboard/b2b/client-performance",
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        ),
+      },
+    ],
+  },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [dashOpen, setDashOpen] = useState(
-    pathname.startsWith("/dashboard/car-rental") || pathname.startsWith("/dashboard/account-summary")
-  );
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => ({
+    dashboard: pathname.startsWith("/dashboard/car-rental") || pathname.startsWith("/dashboard/account-summary"),
+    b2b:       pathname.startsWith("/dashboard/b2b"),
+  }));
+
+  function toggleGroup(key: string) {
+    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   return (
     <aside className="w-56 min-h-screen bg-[#1e3a8a] flex flex-col flex-shrink-0">
@@ -81,11 +110,14 @@ export default function Sidebar() {
           }
 
           // Group with children
-          const groupActive = item.children?.some((c) => pathname === c.href);
+          const groupKey    = item.key ?? item.label;
+          const isOpen      = openGroups[groupKey] ?? false;
+          const groupActive = item.children?.some((c) => pathname.startsWith(c.href));
+
           return (
-            <div key={item.label}>
+            <div key={groupKey}>
               <button
-                onClick={() => setDashOpen((o) => !o)}
+                onClick={() => toggleGroup(groupKey)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   groupActive
                     ? "bg-white/20 text-white"
@@ -93,16 +125,16 @@ export default function Sidebar() {
                 }`}>
                 {item.icon}
                 <span className="flex-1 text-left">{item.label}</span>
-                <svg className={`w-4 h-4 transition-transform ${dashOpen ? "rotate-90" : ""}`}
+                <svg className={`w-4 h-4 transition-transform ${isOpen ? "rotate-90" : ""}`}
                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
 
-              {dashOpen && (
+              {isOpen && (
                 <div className="ml-4 mt-1 space-y-1">
                   {item.children?.map((child) => {
-                    const active = pathname === child.href;
+                    const active = pathname.startsWith(child.href);
                     return (
                       <Link key={child.href} href={child.href}
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
