@@ -1,7 +1,19 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { PerfRow } from "@/lib/b2bClientPerf";
+
+// Inlined to avoid importing server-side DB module into client bundle
+type PerfRow = {
+  client_name: string; city: string;
+  no_of_requests: number; done: number; unfulfilled: number;
+  total_fare: number; driver_fare: number;
+  trip_level_margin: number; trip_level_margin_pct: number;
+  per_trip_incentive: number; ft_incentive: number; dry_run_incentive: number;
+  specific_trip_incentive: number;
+  daily_incentive: number; weekly_incentive: number; monthly_incentive: number;
+  total_unspecific_incentive: number; total_incentive: number;
+  done_with_specific: number; done_with_unspecific: number; done_with_any: number;
+};
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
