@@ -290,6 +290,10 @@ export async function GET(req: NextRequest) {
   try {
     const rows = await driveuQueryLong<Record<string, unknown>>(B2C_REVENUE_QUERY, [startDate, endDate]);
 
+    if (searchParams.get("format") === "json") {
+      return NextResponse.json({ rows, total: rows.length });
+    }
+
     if (rows.length > 1048575) {
       return NextResponse.json(
         { error: `Too many records (${rows.length.toLocaleString()}). Exceeds Excel's maximum row limit of 1,048,575.` },
@@ -303,17 +307,13 @@ export async function GET(req: NextRequest) {
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="b2c_revenue_${startDate}_${endDate}.xlsx"`,
       },
     });
   } catch (err) {
     console.error("[B2C Revenue] Error:", err);
     await logDownload("B2C Revenue Report", startDate!, endDate!, session.user?.email ?? "unknown", "error");
-    return NextResponse.json(
-      { error: "Failed to generate report. Check server logs." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to generate report. Check server logs." }, { status: 500 });
   }
 }

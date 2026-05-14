@@ -183,6 +183,10 @@ export async function GET(req: NextRequest) {
   try {
     const rows = await carRentalQueryLong<Record<string, unknown>>(QUERY, [startDt, endDt]);
 
+    if (searchParams.get("format") === "json") {
+      return NextResponse.json({ rows, total: rows.length });
+    }
+
     if (rows.length > 1048575)
       return NextResponse.json({ error: `Too many records (${rows.length.toLocaleString()}).` }, { status: 400 });
 
