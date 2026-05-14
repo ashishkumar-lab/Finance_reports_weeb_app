@@ -8,6 +8,7 @@ import { getUserPermissions, ALL_REPORTS } from "@/lib/userDb";
 const reports = [
   { id: "b2c-revenue",         title: "B2C Revenue Report",                description: "Business-to-Consumer revenue breakdown including transaction totals, refunds, and net revenue by date range.", icon: "b2c",      color: "blue"   },
   { id: "b2b-revenue",         title: "B2B Revenue Report",                description: "Business-to-Business revenue summary covering corporate accounts, invoices, and payment settlements.",         icon: "b2b",      color: "green"  },
+  { id: "coach-revenue",       title: "Coach Revenue Report",              description: "Coach service trip revenue breakdown including fare details, incentives, and payment info for coach bookings.", icon: "b2c",      color: "purple" },
   { id: "driver-wallet",       title: "Driver Wallet Report",              description: "Driver wallet transactions including earnings, withdrawals, bonuses, and current balances.",                   icon: "driver",   color: "orange" },
   { id: "customer-wallet",     title: "Customer Wallet Report",            description: "Customer wallet activity covering top-ups, spending, refunds, and wallet balance history.",                   icon: "customer", color: "purple" },
   { id: "car-rental-bookings", title: "Car Rental Booking Request Report", description: "All car rental booking requests with status, trip details, vehicle info, pricing, and payment breakdown.",    icon: "b2b",      color: "blue"   },
