@@ -9,17 +9,30 @@ export type ColDef = {
   minWidth?: number;
 };
 
+export type SummaryCardDef =
+  | { label: string; valueType: "count"; color?: string }
+  | { label: string; valueType: "sum"; keys: string[]; color?: string }
+  | { label: string; valueType: "subtract"; positiveKeys: string[]; negativeKeys: string[]; color?: string };
+
 interface Props {
   reportId: string;
   reportName: string;
   columns: ColDef[];
+  summaryCards?: SummaryCardDef[];
 }
 
 const PAGE_SIZE = 20;
 
 function r2(v: number) { return Math.round(v * 100) / 100; }
 
-export default function ReportTableClient({ reportId, reportName, columns }: Props) {
+const CARD_COLORS = [
+  { bg: "bg-blue-50",   border: "border-blue-200",  text: "text-blue-700",   val: "text-blue-900"   },
+  { bg: "bg-green-50",  border: "border-green-200", text: "text-green-700",  val: "text-green-900"  },
+  { bg: "bg-amber-50",  border: "border-amber-200", text: "text-amber-700",  val: "text-amber-900"  },
+  { bg: "bg-purple-50", border: "border-purple-200",text: "text-purple-700", val: "text-purple-900" },
+];
+
+export default function ReportTableClient({ reportId, reportName, columns, summaryCards }: Props) {
   const today = new Date().toISOString().split("T")[0];
   const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     .toISOString().split("T")[0];
@@ -46,6 +59,25 @@ export default function ReportTableClient({ reportId, reportName, columns }: Pro
     }
     return t;
   }, [rows, columns]);
+
+  const summaryValues = useMemo(() => {
+    if (!summaryCards) return [];
+    return summaryCards.map(card => {
+      if (card.valueType === "count") return rows.length;
+      if (card.valueType === "sum") {
+        return r2(rows.reduce((sum, row) =>
+          sum + card.keys.reduce((s, k) => s + (Number(row[k]) || 0), 0), 0));
+      }
+      if (card.valueType === "subtract") {
+        const pos = r2(rows.reduce((sum, row) =>
+          sum + card.positiveKeys.reduce((s, k) => s + (Number(row[k]) || 0), 0), 0));
+        const neg = r2(rows.reduce((sum, row) =>
+          sum + card.negativeKeys.reduce((s, k) => s + (Number(row[k]) || 0), 0), 0));
+        return r2(pos - neg);
+      }
+      return 0;
+    });
+  }, [rows, summaryCards]);
 
   async function handleApply() {
     if (!startDate || !endDate) { setError("Please select both dates."); return; }
@@ -101,8 +133,10 @@ export default function ReportTableClient({ reportId, reportName, columns }: Pro
     }
   }
 
+  const hasSummary = summaryCards && summaryCards.length > 0;
+
   return (
-    <div className="flex flex-col" style={{ height: "calc(100vh - 120px)" }}>
+    <div className="flex flex-col" style={{ height: hasSummary ? "auto" : "calc(100vh - 120px)" }}>
       {/* Header */}
       <div className="mb-4 flex-shrink-0">
         <h1 className="text-2xl font-bold text-gray-900">{reportName}</h1>
@@ -165,13 +199,14 @@ export default function ReportTableClient({ reportId, reportName, columns }: Pro
 
       {/* Table */}
       {dataLoaded && (
-        <div className="flex flex-col flex-1 min-h-0">
+        <div className={`flex flex-col ${hasSummary ? "" : "flex-1 min-h-0"}`}>
           <div className="text-sm text-gray-500 mb-2 flex-shrink-0">
             {rows.length.toLocaleString()} records · Page {page} of {totalPages}
           </div>
 
           {/* Scrollable table container */}
-          <div className="flex-1 min-h-0 overflow-auto border border-gray-200 rounded-xl">
+          <div className="overflow-auto border border-gray-200 rounded-xl"
+            style={hasSummary ? { maxHeight: "calc(100vh - 440px)", minHeight: 200 } : { flex: 1, minHeight: 0 }}>
             <table className="text-xs border-collapse" style={{ minWidth: "max-content", width: "100%" }}>
               <thead className="bg-[#1e3a8a] text-white" style={{ position: "sticky", top: 0, zIndex: 20 }}>
                 <tr>
@@ -229,6 +264,30 @@ export default function ReportTableClient({ reportId, reportName, columns }: Pro
               Next →
             </button>
           </div>
+
+          {/* Summary Cards */}
+          {hasSummary && (
+            <div className="mt-6">
+              <h2 className="text-base font-semibold text-gray-700 mb-3">Summary</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-6">
+                {summaryCards!.map((card, i) => {
+                  const val = summaryValues[i] as number;
+                  const c = CARD_COLORS[i % CARD_COLORS.length];
+                  const isCount = card.valueType === "count";
+                  return (
+                    <div key={i} className={`rounded-xl border ${c.bg} ${c.border} p-5 shadow-sm`}>
+                      <p className={`text-xs font-semibold uppercase tracking-wide ${c.text} mb-1`}>{card.label}</p>
+                      <p className={`text-2xl font-bold ${c.val} leading-tight`}>
+                        {isCount
+                          ? val.toLocaleString()
+                          : `₹${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

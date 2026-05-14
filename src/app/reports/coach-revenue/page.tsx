@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/authOptions";
 import { getUserPermissions } from "@/lib/userDb";
 import AppLayout from "@/components/AppLayout";
-import ReportTableClient, { ColDef } from "@/components/ReportTableClient";
+import ReportTableClient, { ColDef, SummaryCardDef } from "@/components/ReportTableClient";
 import DashboardLocked from "@/components/DashboardLocked";
 
 const COLUMNS: ColDef[] = [
@@ -50,6 +50,22 @@ const COLUMNS: ColDef[] = [
   { header: "Is DU Black",            key: "is_du_black",              minWidth: 110 },
 ];
 
+const SUMMARY_CARDS: SummaryCardDef[] = [
+  { label: "Count of Bookings", valueType: "count" },
+  {
+    label: "Total Revenue",
+    valueType: "sum",
+    keys: ["driver_fee", "convenience_fee", "du_secure_fee", "platform_fee"],
+  },
+  { label: "Total Driver Earnings", valueType: "sum", keys: ["driver_fee"] },
+  {
+    label: "Trip Level Margin",
+    valueType: "subtract",
+    positiveKeys: ["driver_fee", "convenience_fee", "du_secure_fee", "platform_fee"],
+    negativeKeys: ["driver_fee"],
+  },
+];
+
 export default async function CoachRevenuePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
@@ -67,7 +83,7 @@ export default async function CoachRevenuePage() {
       {!hasAccess ? (
         <DashboardLocked dashboardId="coach-revenue" dashboardName="Coach Revenue Report" />
       ) : (
-        <ReportTableClient reportId="coach-revenue" reportName="Coach Revenue Report" columns={COLUMNS} />
+        <ReportTableClient reportId="coach-revenue" reportName="Coach Revenue Report" columns={COLUMNS} summaryCards={SUMMARY_CARDS} />
       )}
     </AppLayout>
   );
