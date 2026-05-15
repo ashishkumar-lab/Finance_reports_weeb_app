@@ -23,10 +23,10 @@ SELECT
         ELSE 0
     END AS Adjusted_to_invoice,
     (
-        abt.amount
-        - abt.refund_amount
-        - abt.cancellation_fee_deducted
-        - CASE WHEN ab.status = 5 THEN abt.amount ELSE 0 END
+        CAST(abt.amount AS SIGNED)
+        - CAST(abt.refund_amount AS SIGNED)
+        - CAST(abt.cancellation_fee_deducted AS SIGNED)
+        - CASE WHEN ab.status = 5 THEN CAST(abt.amount AS SIGNED) ELSE 0 END
     ) AS Balance_Amount
 FROM app_bookingtokenamount AS abt
 LEFT JOIN app_booking AS ab
