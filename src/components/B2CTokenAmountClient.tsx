@@ -12,6 +12,7 @@ const COLUMNS = [
   { header: "Refund Amount",             key: "refund_amount",             minWidth: 140, numeric: true },
   { header: "Cancellation Fee Deducted", key: "cancellation_fee_deducted", minWidth: 200, numeric: true },
   { header: "Created At",                key: "created_at",                minWidth: 170 },
+  { header: "Pickup Datetime",           key: "pickup_datetime",           minWidth: 170 },
   { header: "Booking Status",            key: "booking_status",            minWidth: 140 },
   { header: "Adjusted to Invoice",       key: "Adjusted_to_invoice",       minWidth: 170, numeric: true },
   { header: "Balance Amount",            key: "Balance_Amount",            minWidth: 150, numeric: true },

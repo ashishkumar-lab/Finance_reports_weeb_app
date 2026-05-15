@@ -14,6 +14,7 @@ SELECT
     abt.refund_amount,
     abt.cancellation_fee_deducted,
     abt.created_at,
+    ab.pickup_datetime,
     CASE
         WHEN ab.status = 5 THEN 'Done'
         ELSE 'Not_Done'
@@ -50,6 +51,7 @@ const COLUMNS = [
   { header: "Refund Amount",              key: "refund_amount",             width: 16 },
   { header: "Cancellation Fee Deducted",  key: "cancellation_fee_deducted", width: 26 },
   { header: "Created At",                 key: "created_at",                width: 22 },
+  { header: "Pickup Datetime",            key: "pickup_datetime",           width: 22 },
   { header: "Booking Status",             key: "booking_status",            width: 16 },
   { header: "Adjusted to Invoice",        key: "Adjusted_to_invoice",       width: 20 },
   { header: "Balance Amount",             key: "Balance_Amount",            width: 16 },
