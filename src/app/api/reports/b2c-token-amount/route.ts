@@ -17,8 +17,14 @@ SELECT
     abt.updated_at,
     ab.pickup_datetime,
     CASE
+        WHEN ab.status = 0 THEN 'Pending / Created'
+        WHEN ab.status = 1 THEN 'Accepted by Driver'
+        WHEN ab.status = 2 THEN 'On the Way'
+        WHEN ab.status = 3 THEN 'Trip Started'
+        WHEN ab.status = 4 THEN 'Completed (Driver Side)'
         WHEN ab.status = 5 THEN 'Done'
         WHEN ab.status = 6 THEN 'Cancelled'
+        WHEN ab.status = 7 THEN 'Payment Pending'
         WHEN ab.status IS NULL THEN 'No Booking'
         ELSE CONCAT('Other (', ab.status, ')')
     END AS booking_status,
