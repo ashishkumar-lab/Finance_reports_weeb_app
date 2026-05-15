@@ -197,6 +197,93 @@ function TableSection({
   );
 }
 
+/* ── Previous-month summary + status breakdown ────────────── */
+function PrevMonthSummarySection({ rows, monthLabel }: { rows: Row[]; monthLabel: string }) {
+  const summaryValues = useSummary(rows);
+
+  const statusBreakdown = useMemo(() => {
+    const map: Record<string, { count: number; balance: number }> = {};
+    for (const row of rows) {
+      const status = String(row.booking_status ?? "Unknown");
+      if (!map[status]) map[status] = { count: 0, balance: 0 };
+      map[status].count++;
+      map[status].balance = r2(map[status].balance + (Number(row.Balance_Amount) || 0));
+    }
+    return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [rows]);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="mt-6">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-1 h-6 bg-indigo-500 rounded" />
+        <h2 className="text-base font-semibold text-gray-700">
+          Previous Month ({monthLabel}) — Created & Settled in Current Period
+        </h2>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        {CARD_LABELS.map((label, i) => {
+          const val = summaryValues[i] as number;
+          const c = CARD_COLORS[i];
+          const isCount = i === 0;
+          return (
+            <div key={i} className={`rounded-xl border ${c.bg} ${c.border} p-4 shadow-sm`}>
+              <p className={`text-xs font-semibold uppercase tracking-wide ${c.text} mb-1`}>{label}</p>
+              <p className={`text-xl font-bold ${c.val} leading-tight`}>
+                {isCount
+                  ? val.toLocaleString()
+                  : `₹${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Status breakdown */}
+      <div>
+        <p className="text-sm font-semibold text-gray-600 mb-2">Balance by Booking Status</p>
+        <div className="border border-gray-200 rounded-xl overflow-hidden inline-block min-w-[380px]">
+          <table className="text-sm border-collapse w-full">
+            <thead className="bg-[#1e3a8a] text-white">
+              <tr>
+                <th className="px-4 py-2.5 text-left font-semibold border-r border-blue-800">Booking Status</th>
+                <th className="px-4 py-2.5 text-right font-semibold border-r border-blue-800">Count</th>
+                <th className="px-4 py-2.5 text-right font-semibold">Total Balance Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {statusBreakdown.map(([status, { count, balance }], i) => (
+                <tr key={status} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                  <td className="px-4 py-2 border-r border-gray-100 font-medium text-gray-700">{status}</td>
+                  <td className="px-4 py-2 border-r border-gray-100 text-right text-gray-700">{count.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-gray-700">
+                    ₹{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-blue-50 border-t-2 border-blue-300 font-semibold text-blue-900">
+              <tr>
+                <td className="px-4 py-2.5 border-r border-blue-200">Total</td>
+                <td className="px-4 py-2.5 border-r border-blue-200 text-right">
+                  {rows.length.toLocaleString()}
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  ₹{r2(statusBreakdown.reduce((s, [, d]) => s + d.balance, 0))
+                    .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main component ───────────────────────────────────────── */
 export default function B2CTokenAmountClient() {
   const today    = new Date().toISOString().split("T")[0];
@@ -225,6 +312,22 @@ export default function B2CTokenAmountClient() {
   const abort2 = useRef<AbortController | null>(null);
 
   const isLoading = loading1 || loading2;
+
+  // Previous month rows: rows2 filtered to only those created in the month before startDate
+  const { prevMonthRows, prevMonthLabel } = useMemo(() => {
+    const d = new Date(startDate + "T00:00:00");
+    d.setDate(1);
+    d.setMonth(d.getMonth() - 1);
+    const prevYear  = d.getFullYear();
+    const prevMonth = d.getMonth(); // 0-indexed
+    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
+    const filtered = rows2.filter(row => {
+      if (!row.created_at) return false;
+      const cd = new Date(String(row.created_at));
+      return cd.getFullYear() === prevYear && cd.getMonth() === prevMonth;
+    });
+    return { prevMonthRows: filtered, prevMonthLabel: label };
+  }, [rows2, startDate]);
 
   async function fetchOne(
     dateField: string,
@@ -368,6 +471,12 @@ export default function B2CTokenAmountClient() {
           onDownload={() => download("pickup", setDl2)}
           summaryHeading="Previously Received but Settled in Current Period Summary"
         />
+        {loaded2 && (
+          <>
+            <div className="my-6 border-t border-dashed border-gray-200" />
+            <PrevMonthSummarySection rows={prevMonthRows} monthLabel={prevMonthLabel} />
+          </>
+        )}
       </div>
     </div>
   );
