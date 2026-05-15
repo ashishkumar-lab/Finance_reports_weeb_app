@@ -12,6 +12,7 @@ const COLUMNS = [
   { header: "Refund Amount",             key: "refund_amount",             minWidth: 140, numeric: true },
   { header: "Cancellation Fee Deducted", key: "cancellation_fee_deducted", minWidth: 200, numeric: true },
   { header: "Created At",                key: "created_at",                minWidth: 170 },
+  { header: "Updated At",                key: "updated_at",                minWidth: 170 },
   { header: "Pickup Datetime",           key: "pickup_datetime",           minWidth: 170 },
   { header: "Booking Status",            key: "booking_status",            minWidth: 140 },
   { header: "Adjusted to Invoice",       key: "Adjusted_to_invoice",       minWidth: 170, numeric: true },
@@ -63,10 +64,65 @@ function useTotals(rows: Row[]) {
   }, [rows]);
 }
 
+/* ── Status breakdown table ───────────────────────────────── */
+function StatusBreakdown({ rows }: { rows: Row[] }) {
+  const breakdown = useMemo(() => {
+    const map: Record<string, { count: number; balance: number }> = {};
+    for (const row of rows) {
+      const status = String(row.booking_status ?? "Unknown");
+      if (!map[status]) map[status] = { count: 0, balance: 0 };
+      map[status].count++;
+      map[status].balance = r2(map[status].balance + (Number(row.Balance_Amount) || 0));
+    }
+    return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [rows]);
+
+  if (breakdown.length === 0) return null;
+
+  const totalBalance = r2(breakdown.reduce((s, [, d]) => s + d.balance, 0));
+
+  return (
+    <div className="mt-5">
+      <p className="text-sm font-semibold text-gray-600 mb-2">Balance by Booking Status</p>
+      <div className="border border-gray-200 rounded-xl overflow-hidden inline-block min-w-[420px]">
+        <table className="text-sm border-collapse w-full">
+          <thead className="bg-[#1e3a8a] text-white">
+            <tr>
+              <th className="px-4 py-2.5 text-left font-semibold border-r border-blue-800">Booking Status</th>
+              <th className="px-4 py-2.5 text-right font-semibold border-r border-blue-800">Count</th>
+              <th className="px-4 py-2.5 text-right font-semibold">Total Balance Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {breakdown.map(([status, { count, balance }], i) => (
+              <tr key={status} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-4 py-2 border-r border-gray-100 font-medium text-gray-700">{status}</td>
+                <td className="px-4 py-2 border-r border-gray-100 text-right text-gray-700">{count.toLocaleString()}</td>
+                <td className="px-4 py-2 text-right text-gray-700">
+                  ₹{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="bg-blue-50 border-t-2 border-blue-300 font-semibold text-blue-900">
+            <tr>
+              <td className="px-4 py-2.5 border-r border-blue-200">Total</td>
+              <td className="px-4 py-2.5 border-r border-blue-200 text-right">{rows.length.toLocaleString()}</td>
+              <td className="px-4 py-2.5 text-right">
+                ₹{totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 /* ── Single table section ─────────────────────────────────── */
 function TableSection({
   rows, loading, error, page, setPage, dataLoaded, downloading, onDownload,
-  summaryHeading,
+  summaryHeading, showStatusBreakdown,
 }: {
   rows: Row[];
   loading: boolean;
@@ -77,10 +133,11 @@ function TableSection({
   downloading: boolean;
   onDownload: () => void;
   summaryHeading: string;
+  showStatusBreakdown?: boolean;
 }) {
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const totals = useTotals(rows);
+  const totalPages  = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageRows    = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totals      = useTotals(rows);
   const summaryValues = useSummary(rows);
 
   return (
@@ -173,7 +230,7 @@ function TableSection({
           {/* Summary cards */}
           <div className="mt-6">
             <h2 className="text-base font-semibold text-gray-700 mb-3">{summaryHeading}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 pb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
               {CARD_LABELS.map((label, i) => {
                 const val = summaryValues[i] as number;
                 const c = CARD_COLORS[i];
@@ -191,95 +248,11 @@ function TableSection({
               })}
             </div>
           </div>
+
+          {/* Status breakdown */}
+          {showStatusBreakdown && <StatusBreakdown rows={rows} />}
         </>
       )}
-    </div>
-  );
-}
-
-/* ── Previous-month summary + status breakdown ────────────── */
-function PrevMonthSummarySection({ rows, monthLabel }: { rows: Row[]; monthLabel: string }) {
-  const summaryValues = useSummary(rows);
-
-  const statusBreakdown = useMemo(() => {
-    const map: Record<string, { count: number; balance: number }> = {};
-    for (const row of rows) {
-      const status = String(row.booking_status ?? "Unknown");
-      if (!map[status]) map[status] = { count: 0, balance: 0 };
-      map[status].count++;
-      map[status].balance = r2(map[status].balance + (Number(row.Balance_Amount) || 0));
-    }
-    return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [rows]);
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div className="mt-6">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-1 h-6 bg-indigo-500 rounded" />
-        <h2 className="text-base font-semibold text-gray-700">
-          Previous Month ({monthLabel}) — Created & Settled in Current Period
-        </h2>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-        {CARD_LABELS.map((label, i) => {
-          const val = summaryValues[i] as number;
-          const c = CARD_COLORS[i];
-          const isCount = i === 0;
-          return (
-            <div key={i} className={`rounded-xl border ${c.bg} ${c.border} p-4 shadow-sm`}>
-              <p className={`text-xs font-semibold uppercase tracking-wide ${c.text} mb-1`}>{label}</p>
-              <p className={`text-xl font-bold ${c.val} leading-tight`}>
-                {isCount
-                  ? val.toLocaleString()
-                  : `₹${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Status breakdown */}
-      <div>
-        <p className="text-sm font-semibold text-gray-600 mb-2">Balance by Booking Status</p>
-        <div className="border border-gray-200 rounded-xl overflow-hidden inline-block min-w-[380px]">
-          <table className="text-sm border-collapse w-full">
-            <thead className="bg-[#1e3a8a] text-white">
-              <tr>
-                <th className="px-4 py-2.5 text-left font-semibold border-r border-blue-800">Booking Status</th>
-                <th className="px-4 py-2.5 text-right font-semibold border-r border-blue-800">Count</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Total Balance Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {statusBreakdown.map(([status, { count, balance }], i) => (
-                <tr key={status} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  <td className="px-4 py-2 border-r border-gray-100 font-medium text-gray-700">{status}</td>
-                  <td className="px-4 py-2 border-r border-gray-100 text-right text-gray-700">{count.toLocaleString()}</td>
-                  <td className="px-4 py-2 text-right text-gray-700">
-                    ₹{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-blue-50 border-t-2 border-blue-300 font-semibold text-blue-900">
-              <tr>
-                <td className="px-4 py-2.5 border-r border-blue-200">Total</td>
-                <td className="px-4 py-2.5 border-r border-blue-200 text-right">
-                  {rows.length.toLocaleString()}
-                </td>
-                <td className="px-4 py-2.5 text-right">
-                  ₹{r2(statusBreakdown.reduce((s, [, d]) => s + d.balance, 0))
-                    .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
@@ -293,41 +266,25 @@ export default function B2CTokenAmountClient() {
   const [endDate, setEndDate]     = useState(today);
   const [dateError, setDateError] = useState("");
 
-  // Table 1 — filtered by created_at
-  const [rows1, setRows1]           = useState<Row[]>([]);
-  const [loading1, setLoading1]     = useState(false);
-  const [error1, setError1]         = useState("");
-  const [page1, setPage1]           = useState(1);
-  const [loaded1, setLoaded1]       = useState(false);
-  const [dl1, setDl1]               = useState(false);
+  // Table 1 — filtered by abt.created_at
+  const [rows1, setRows1]     = useState<Row[]>([]);
+  const [loading1, setLoading1] = useState(false);
+  const [error1, setError1]   = useState("");
+  const [page1, setPage1]     = useState(1);
+  const [loaded1, setLoaded1] = useState(false);
+  const [dl1, setDl1]         = useState(false);
   const abort1 = useRef<AbortController | null>(null);
 
-  // Table 2 — filtered by pickup_datetime
-  const [rows2, setRows2]           = useState<Row[]>([]);
-  const [loading2, setLoading2]     = useState(false);
-  const [error2, setError2]         = useState("");
-  const [page2, setPage2]           = useState(1);
-  const [loaded2, setLoaded2]       = useState(false);
-  const [dl2, setDl2]               = useState(false);
+  // Table 2 — filtered by abt.updated_at, created before period
+  const [rows2, setRows2]     = useState<Row[]>([]);
+  const [loading2, setLoading2] = useState(false);
+  const [error2, setError2]   = useState("");
+  const [page2, setPage2]     = useState(1);
+  const [loaded2, setLoaded2] = useState(false);
+  const [dl2, setDl2]         = useState(false);
   const abort2 = useRef<AbortController | null>(null);
 
   const isLoading = loading1 || loading2;
-
-  // Previous month rows: rows2 filtered to only those created in the month before startDate
-  const { prevMonthRows, prevMonthLabel } = useMemo(() => {
-    const d = new Date(startDate + "T00:00:00");
-    d.setDate(1);
-    d.setMonth(d.getMonth() - 1);
-    const prevYear  = d.getFullYear();
-    const prevMonth = d.getMonth(); // 0-indexed
-    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
-    const filtered = rows2.filter(row => {
-      if (!row.created_at) return false;
-      const cd = new Date(String(row.created_at));
-      return cd.getFullYear() === prevYear && cd.getMonth() === prevMonth;
-    });
-    return { prevMonthRows: filtered, prevMonthLabel: label };
-  }, [rows2, startDate]);
 
   async function fetchOne(
     dateField: string,
@@ -369,7 +326,7 @@ export default function B2CTokenAmountClient() {
     abort2.current = c2;
 
     fetchOne("created", c1.signal, setRows1, setLoading1, setError1, setLoaded1);
-    fetchOne("pickup",  c2.signal, setRows2, setLoading2, setError2, setLoaded2);
+    fetchOne("updated", c2.signal, setRows2, setLoading2, setError2, setLoaded2);
   }
 
   function handleStop() {
@@ -440,7 +397,7 @@ export default function B2CTokenAmountClient() {
         <div className="mb-3 text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-2 rounded-lg">{dateError}</div>
       )}
 
-      {/* Section 1 — by Token Created Date */}
+      {/* Section 1 — By Token Created Date */}
       <div className="mt-6">
         <div className="flex items-center gap-3 mb-3">
           <h2 className="text-lg font-bold text-gray-800">By Token Created Date</h2>
@@ -452,31 +409,30 @@ export default function B2CTokenAmountClient() {
           dataLoaded={loaded1} downloading={dl1}
           onDownload={() => download("created", setDl1)}
           summaryHeading="Summary"
+          showStatusBreakdown
         />
       </div>
 
       {/* Divider */}
       <div className="my-8 border-t-2 border-dashed border-gray-200" />
 
-      {/* Section 2 — by Pickup Date */}
+      {/* Section 2 — By Token Updated Date (created before period) */}
       <div>
         <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-lg font-bold text-gray-800">By Pickup Date</h2>
+          <h2 className="text-lg font-bold text-gray-800">Previously Created — Updated in Current Period</h2>
           {loading2 && <span className="text-xs text-blue-500 font-medium animate-pulse">Loading…</span>}
         </div>
+        <p className="text-sm text-gray-500 mb-3">
+          Tokens created before {startDate} whose <strong>updated_at</strong> falls within the selected period.
+        </p>
         <TableSection
           rows={rows2} loading={loading2} error={error2}
           page={page2} setPage={setPage2}
           dataLoaded={loaded2} downloading={dl2}
-          onDownload={() => download("pickup", setDl2)}
-          summaryHeading="Previously Received but Settled in Current Period Summary"
+          onDownload={() => download("updated", setDl2)}
+          summaryHeading="Summary"
+          showStatusBreakdown
         />
-        {loaded2 && (
-          <>
-            <div className="my-6 border-t border-dashed border-gray-200" />
-            <PrevMonthSummarySection rows={prevMonthRows} monthLabel={prevMonthLabel} />
-          </>
-        )}
       </div>
     </div>
   );

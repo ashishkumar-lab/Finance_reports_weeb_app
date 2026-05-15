@@ -14,10 +14,13 @@ SELECT
     abt.refund_amount,
     abt.cancellation_fee_deducted,
     abt.created_at,
+    abt.updated_at,
     ab.pickup_datetime,
     CASE
         WHEN ab.status = 5 THEN 'Done'
-        ELSE 'Not_Done'
+        WHEN ab.status = 6 THEN 'Cancelled'
+        WHEN ab.status IS NULL THEN 'No Booking'
+        ELSE CONCAT('Other (', ab.status, ')')
     END AS booking_status,
     CASE
         WHEN ab.status = 5 THEN abt.amount
@@ -35,13 +38,13 @@ LEFT JOIN app_booking AS ab
 `;
 
 const QUERY_BY_CREATED = BASE_SELECT +
-  `WHERE DATE(abt.created_at) BETWEEN ? AND ? ORDER BY abt.created_at`;
+  `WHERE DATE(abt.created_at) BETWEEN ? AND ?
+   ORDER BY abt.created_at`;
 
-const QUERY_BY_PICKUP = BASE_SELECT +
-  `WHERE DATE(ab.pickup_datetime) BETWEEN ? AND ?
+const QUERY_BY_UPDATED = BASE_SELECT +
+  `WHERE DATE(abt.updated_at) BETWEEN ? AND ?
    AND DATE(abt.created_at) < ?
-   AND NOT (ab.status = 6 AND DATE(ab.updated_at) < ?)
-   ORDER BY ab.pickup_datetime`;
+   ORDER BY abt.updated_at`;
 
 const COLUMNS = [
   { header: "ID",                         key: "id",                        width: 12 },
@@ -51,6 +54,7 @@ const COLUMNS = [
   { header: "Refund Amount",              key: "refund_amount",             width: 16 },
   { header: "Cancellation Fee Deducted",  key: "cancellation_fee_deducted", width: 26 },
   { header: "Created At",                 key: "created_at",                width: 22 },
+  { header: "Updated At",                 key: "updated_at",                width: 22 },
   { header: "Pickup Datetime",            key: "pickup_datetime",           width: 22 },
   { header: "Booking Status",             key: "booking_status",            width: 16 },
   { header: "Adjusted to Invoice",        key: "Adjusted_to_invoice",       width: 20 },
@@ -82,12 +86,12 @@ export async function GET(req: NextRequest) {
   if (!DATE_REGEX.test(startDate) || !DATE_REGEX.test(endDate))
     return NextResponse.json({ error: "Invalid date format. Use YYYY-MM-DD." }, { status: 400 });
 
-  const dateField = searchParams.get("dateField") ?? "created";
-  const isPickup = dateField === "pickup";
-  const query = isPickup ? QUERY_BY_PICKUP : QUERY_BY_CREATED;
-  const queryParams = isPickup ? [startDate, endDate, startDate, startDate] : [startDate, endDate];
-  const reportLabel = isPickup ? "B2C Token Amount (Pickup Date)" : "B2C Token Amount";
-  const filePrefix  = isPickup ? "b2c_token_amount_pickup"        : "b2c_token_amount";
+  const dateField   = searchParams.get("dateField") ?? "created";
+  const isUpdated   = dateField === "updated";
+  const query       = isUpdated ? QUERY_BY_UPDATED : QUERY_BY_CREATED;
+  const queryParams = isUpdated ? [startDate, endDate, startDate] : [startDate, endDate];
+  const reportLabel = isUpdated ? "B2C Token Amount (Updated Date)" : "B2C Token Amount";
+  const filePrefix  = isUpdated ? "b2c_token_amount_updated"        : "b2c_token_amount";
 
   try {
     const rows = await driveuQueryLong<Record<string, unknown>>(query, queryParams);
