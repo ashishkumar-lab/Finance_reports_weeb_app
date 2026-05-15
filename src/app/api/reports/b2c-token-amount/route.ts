@@ -38,6 +38,7 @@ const QUERY_BY_CREATED = BASE_SELECT +
 
 const QUERY_BY_PICKUP = BASE_SELECT +
   `WHERE DATE(ab.pickup_datetime) BETWEEN ? AND ?
+   AND DATE(abt.created_at) < ?
    AND NOT (ab.status = 6 AND DATE(ab.updated_at) < ?)
    ORDER BY ab.pickup_datetime`;
 
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
   const dateField = searchParams.get("dateField") ?? "created";
   const isPickup = dateField === "pickup";
   const query = isPickup ? QUERY_BY_PICKUP : QUERY_BY_CREATED;
-  const queryParams = isPickup ? [startDate, endDate, startDate] : [startDate, endDate];
+  const queryParams = isPickup ? [startDate, endDate, startDate, startDate] : [startDate, endDate];
   const reportLabel = isPickup ? "B2C Token Amount (Pickup Date)" : "B2C Token Amount";
   const filePrefix  = isPickup ? "b2c_token_amount_pickup"        : "b2c_token_amount";
 
