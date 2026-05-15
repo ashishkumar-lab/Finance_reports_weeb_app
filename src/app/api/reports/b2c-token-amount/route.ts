@@ -5,7 +5,7 @@ import { driveuQueryLong, logDownload } from "@/lib/db";
 import { hasReportPermission } from "@/lib/userDb";
 import { generateExcel } from "@/lib/excel";
 
-const B2C_TOKEN_AMOUNT_QUERY = `
+const BASE_SELECT = `
 SELECT
     abt.id,
     abt.booking_id          AS token_booking_id,
@@ -31,9 +31,13 @@ SELECT
 FROM app_bookingtokenamount AS abt
 LEFT JOIN app_booking AS ab
     ON ab.id = abt.booking_id
-WHERE DATE(abt.created_at) BETWEEN ? AND ?
-ORDER BY abt.created_at
 `;
+
+const QUERY_BY_CREATED = BASE_SELECT +
+  `WHERE DATE(abt.created_at) BETWEEN ? AND ? ORDER BY abt.created_at`;
+
+const QUERY_BY_PICKUP = BASE_SELECT +
+  `WHERE DATE(ab.pickup_datetime) BETWEEN ? AND ? ORDER BY ab.pickup_datetime`;
 
 const COLUMNS = [
   { header: "ID",                         key: "id",                        width: 12 },
@@ -73,8 +77,17 @@ export async function GET(req: NextRequest) {
   if (!DATE_REGEX.test(startDate) || !DATE_REGEX.test(endDate))
     return NextResponse.json({ error: "Invalid date format. Use YYYY-MM-DD." }, { status: 400 });
 
+  const dateField = searchParams.get("dateField") ?? "created";
+  const query = dateField === "pickup" ? QUERY_BY_PICKUP : QUERY_BY_CREATED;
+  const reportLabel = dateField === "pickup"
+    ? "B2C Token Amount (Pickup Date)"
+    : "B2C Token Amount";
+  const filePrefix = dateField === "pickup"
+    ? "b2c_token_amount_pickup"
+    : "b2c_token_amount";
+
   try {
-    const rows = await driveuQueryLong<Record<string, unknown>>(B2C_TOKEN_AMOUNT_QUERY, [startDate, endDate]);
+    const rows = await driveuQueryLong<Record<string, unknown>>(query, [startDate, endDate]);
 
     if (searchParams.get("format") === "json") {
       return NextResponse.json({ rows, total: rows.length });
@@ -87,19 +100,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const buffer = await generateExcel("B2C Token Amount", COLUMNS, rows);
-    await logDownload("B2C Token Amount Report", startDate, endDate, session.user?.email ?? "unknown");
+    const buffer = await generateExcel(reportLabel, COLUMNS, rows);
+    await logDownload(`${reportLabel} Report`, startDate, endDate, session.user?.email ?? "unknown");
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="b2c_token_amount_${startDate}_${endDate}.xlsx"`,
+        "Content-Disposition": `attachment; filename="${filePrefix}_${startDate}_${endDate}.xlsx"`,
       },
     });
   } catch (err) {
     console.error("[B2C Token Amount] Error:", err);
-    await logDownload("B2C Token Amount Report", startDate!, endDate!, session.user?.email ?? "unknown", "error");
+    await logDownload(`${reportLabel} Report`, startDate!, endDate!, session.user?.email ?? "unknown", "error");
     return NextResponse.json({ error: "Failed to generate report. Check server logs." }, { status: 500 });
   }
 }
