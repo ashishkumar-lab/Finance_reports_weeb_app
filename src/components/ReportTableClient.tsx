@@ -30,6 +30,8 @@ const CARD_COLORS = [
   { bg: "bg-green-50",  border: "border-green-200", text: "text-green-700",  val: "text-green-900"  },
   { bg: "bg-amber-50",  border: "border-amber-200", text: "text-amber-700",  val: "text-amber-900"  },
   { bg: "bg-purple-50", border: "border-purple-200",text: "text-purple-700", val: "text-purple-900" },
+  { bg: "bg-rose-50",   border: "border-rose-200",  text: "text-rose-700",   val: "text-rose-900"   },
+  { bg: "bg-teal-50",   border: "border-teal-200",  text: "text-teal-700",   val: "text-teal-900"   },
 ];
 
 export default function ReportTableClient({ reportId, reportName, columns, summaryCards }: Props) {

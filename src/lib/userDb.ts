@@ -18,6 +18,7 @@ export const ALL_REPORTS = [
   { id: "customer-wallet",        name: "Customer Wallet Report" },
   { id: "car-rental-bookings",    name: "Car Rental Booking Request Report" },
   { id: "car-rental-revenue",     name: "Car Rental Revenue Report" },
+  { id: "b2c-token-amount",       name: "B2C Token Amount Report" },
 ];
 
 export const ALL_DASHBOARDS = [
