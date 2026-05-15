@@ -37,7 +37,9 @@ const QUERY_BY_CREATED = BASE_SELECT +
   `WHERE DATE(abt.created_at) BETWEEN ? AND ? ORDER BY abt.created_at`;
 
 const QUERY_BY_PICKUP = BASE_SELECT +
-  `WHERE DATE(ab.pickup_datetime) BETWEEN ? AND ? ORDER BY ab.pickup_datetime`;
+  `WHERE DATE(ab.pickup_datetime) BETWEEN ? AND ?
+   AND NOT (ab.status = 6 AND DATE(ab.updated_at) < ?)
+   ORDER BY ab.pickup_datetime`;
 
 const COLUMNS = [
   { header: "ID",                         key: "id",                        width: 12 },
@@ -78,16 +80,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid date format. Use YYYY-MM-DD." }, { status: 400 });
 
   const dateField = searchParams.get("dateField") ?? "created";
-  const query = dateField === "pickup" ? QUERY_BY_PICKUP : QUERY_BY_CREATED;
-  const reportLabel = dateField === "pickup"
-    ? "B2C Token Amount (Pickup Date)"
-    : "B2C Token Amount";
-  const filePrefix = dateField === "pickup"
-    ? "b2c_token_amount_pickup"
-    : "b2c_token_amount";
+  const isPickup = dateField === "pickup";
+  const query = isPickup ? QUERY_BY_PICKUP : QUERY_BY_CREATED;
+  const queryParams = isPickup ? [startDate, endDate, startDate] : [startDate, endDate];
+  const reportLabel = isPickup ? "B2C Token Amount (Pickup Date)" : "B2C Token Amount";
+  const filePrefix  = isPickup ? "b2c_token_amount_pickup"        : "b2c_token_amount";
 
   try {
-    const rows = await driveuQueryLong<Record<string, unknown>>(query, [startDate, endDate]);
+    const rows = await driveuQueryLong<Record<string, unknown>>(query, queryParams);
 
     if (searchParams.get("format") === "json") {
       return NextResponse.json({ rows, total: rows.length });
